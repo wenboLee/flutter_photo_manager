@@ -1,7 +1,10 @@
 # CHANGELOG
 
 - [CHANGELOG](#changelog)
-  - [0.6.0-dev.8](#060-dev8)
+  - [1.0.2](#102)
+  - [1.0.1](#101)
+  - [1.0.0](#100)
+  - [0.6.0](#060)
   - [0.5.8](#058)
   - [0.5.7](#057)
   - [0.5.6](#056)
@@ -45,7 +48,23 @@
   - [0.0.2 update readme](#002-update-readme)
   - [0.0.1](#001)
 
-## 0.6.0-dev.8
+## 1.0.2
+
+- Improve the constructor for `AssetEntity`.
+
+## 1.0.1
+
+- Fix
+  - orientation bug.
+
+## 1.0.0
+
+Breaking change:
+
+- Migrate to null safety.
+- Correct type in `PMRequestState` .
+
+## 0.6.0
 
 - Feature
 
@@ -56,6 +75,7 @@
   - Experimental
     - Preload image (Use `PhotoCachingManager` api.)
   - Add `OrderOption` as sort condition. The option default value is order by create date desc;
+  - Support icloud asset progress.
 
 - Fixes
   - [#362](https://github.com/CaiJingLong/flutter_photo_manager/issues/362)
