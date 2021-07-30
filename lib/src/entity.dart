@@ -6,11 +6,16 @@ class AssetPathEntity {
   static Future<AssetPathEntity> fromId(
     String id, {
     FilterOptionGroup? filterOption,
+    RequestType type = RequestType.common,
+    int albumType = 1,
   }) async {
+    assert(albumType == 1 || Platform.isIOS || Platform.isMacOS);
     filterOption ??= FilterOptionGroup();
     final entity = AssetPathEntity()
       ..id = id
-      ..filterOption = filterOption;
+      ..filterOption = filterOption
+      ..typeInt = type.index
+      ..albumType = 1;
     await entity.refreshPathProperties();
     return entity;
   }
@@ -41,6 +46,11 @@ class AssetPathEntity {
   late RequestType _type;
 
   late FilterOptionGroup filterOption;
+
+  /// The modification time of the latest asset contained in an album.
+  ///
+  /// See [FilterOptionGroup.containsPathModified]
+  DateTime? lastModified;
 
   /// The value used internally by the user.
   /// Used to indicate the value that should be available inside the path.
@@ -91,6 +101,7 @@ class AssetPathEntity {
       this.isAll = result.isAll;
       this.type = result.type;
       this.filterOption = filterOption;
+      this.lastModified = result.lastModified;
     }
   }
 
@@ -169,7 +180,11 @@ class AssetEntity {
     this.createDtSecond,
     this.modifiedDateSecond,
     this.relativePath,
-  });
+    double? latitude,
+    double? longitude,
+    this.mimeType,
+  })  : _latitude = latitude,
+        _longitude = longitude;
 
   /// Create from [AssetEntity.id], not recommended.
   static Future<AssetEntity?> fromId(String id) async {
@@ -231,6 +246,14 @@ class AssetEntity {
   /// height of asset.
   int height;
 
+  bool get _isLandscape => orientation == 90 || orientation == 270;
+
+  int get orientatedWidth => _isLandscape ? height : width;
+
+  int get orientatedHeight => _isLandscape ? width : height;
+
+  Size get orientatedSize => _isLandscape ? size.flipped : size;
+
   /// Gps information when shooting, nullable.
   ///
   /// When the device is android10 or above, always null.
@@ -264,6 +287,11 @@ class AssetEntity {
   set longitude(double? longitude) {
     _longitude = longitude;
   }
+
+  /// Whether this asset is locally available.
+  ///
+  /// Defaults to true, and it'll always be true on Android.
+  Future<bool> get isLocallyAvailable => PhotoManager._isLocallyAvailable(id);
 
   /// Get latitude and longitude from MediaStore(android) / Photos(iOS).
   ///
@@ -321,6 +349,18 @@ class AssetEntity {
       return null;
     }
 
+    if (Platform.isIOS || Platform.isMacOS) {
+      return thumbDataWithOption(
+        ThumbOption.ios(
+          width: width,
+          height: height,
+          format: format,
+          quality: quality,
+        ),
+        progressHandler: progressHandler,
+      );
+    }
+
     return thumbDataWithOption(
       ThumbOption(
         width: width,
@@ -369,7 +409,7 @@ class AssetEntity {
   /// if not video, duration is 0
   Duration get videoDuration => Duration(seconds: duration);
 
-  /// nullable, if the manager is null.
+  /// The [Size] for the asset.
   Size get size => Size(width.toDouble(), height.toDouble());
 
   /// unix timestamp second of asset
@@ -424,6 +464,13 @@ class AssetEntity {
   /// API 28 or lower: it is `MediaStore.MediaColumns.DATA` parent path.
   String? relativePath;
 
+  /// MimeType of the asset.
+  ///
+  /// In Android, it reads the value in [MediaStore](https://developer.android.com/reference/android/provider/MediaStore.MediaColumns#MIME_TYPE) without guarantee of accuracy.
+  ///
+  /// In iOS, it it always null.
+  String? mimeType;
+
   /// refreshProperties
   Future<AssetEntity?> refreshProperties() async {
     return PhotoManager.refreshAssetProperties(this.id);
@@ -443,9 +490,7 @@ class AssetEntity {
   }
 
   @override
-  String toString() {
-    return "AssetEntity{ id:$id , type: $type}";
-  }
+  String toString() => "AssetEntity (id:$id , type: $type)";
 }
 
 /// Longitude and latitude
